@@ -1,5 +1,6 @@
 use std::num::Wrapping; // allows us to do arithmetic on a mod basis
-use std::iter::{repeat_n, once};
+use std::iter::{repeat_n};
+use std::array;
 
 const K_RAW: [u32; 64] = [
 	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 
@@ -26,7 +27,7 @@ const H: [u32; 8] = [
 ];
 
 // bit of a hack because I want to keep K as a const, but I also want to use Wrapping.
-// and I am too lazy to put Wrapping around each entry in K, which would also make it ugly.
+// with const fns (and current versions of Rust) can't use .map or for loops so will use this solution:
 const fn wrap(xs: [u32; 64]) -> [Wrapping<u32>; 64] {
     let mut out = [Wrapping(0u32); 64];
     let mut i = 0;
@@ -63,6 +64,7 @@ fn ssigma1(x: Wrapping<u32>) -> Wrapping<u32> {
     Wrapping(x.0.rotate_right(17) ^ x.0.rotate_right(19) ^ (x.0 >> 10))
 }
 
+#[derive(Clone)]
 struct Sha256 {
     hash: [Wrapping<u32>; 8],
     buffer: Vec<u8>,
@@ -164,14 +166,13 @@ impl Sha256 {
             let block: &[u8; 64] = chunk.try_into().unwrap();
             self.hash_block(block);
         }
-        
-        // Convert hash to bytes (big-endian)
-        let mut result = [0u8; 32];
-        for (i, &val) in self.hash.iter().enumerate() {
-            // use the `.0` to move out of wrapping world
-            result[i * 4..(i + 1) * 4].copy_from_slice(&val.0.to_be_bytes());
-        }
-        
+
+        let result: [u8; 32] = array::from_fn(|i| {
+            let word_idx = i / 4;
+            let byte_idx = i % 4;
+            self.hash[word_idx].0.to_be_bytes()[byte_idx]
+        });
+
         result
     }
     
@@ -179,13 +180,15 @@ impl Sha256 {
         // Total message length in bits.
         let total_bits = self.total_len * 8; // turn number of u32s into bits
         let ln = self.buffer.len();
-        let k = (56 - ln - 1) % 64;
-
-        self.buffer.iter().copied()
-            .chain(once(0x80))
-            .chain(repeat_n(0x00, k))
-            .chain(total_bits.to_be_bytes())
-            .collect()
+        let rem = (ln + 1) % 64;
+        let k = (64 + 56 - rem) % 64;
+            
+        let mut out = Vec::with_capacity(ln + 1 + k + 8);
+        out.extend_from_slice(&self.buffer);
+        out.push(0x80);
+        out.extend(repeat_n(0x00, k));
+        out.extend_from_slice(&total_bits.to_be_bytes());
+        out
     }
 
 }
@@ -207,7 +210,8 @@ mod tests {
 
     #[test]
     fn basic() {
-        assert_value(b""); assert_value( b"abc");
+        assert_value(b""); 
+        assert_value( b"abc");
         assert_value( b"message digest");
         let v = vec![b'a'; 1000000];
         assert_value( &v);
@@ -219,8 +223,16 @@ mod tests {
         hash.update(b"hello ");
         hash.update(b"world");
         let act = hash.finish();
-
         assert_eq!(act, hex!("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"));
 
     }
+
+    #[test]
+    fn test_padding_threshold() {
+        assert_value( &[0u8; 56]); // edge of padding
+        assert_value( &[0u8; 60]); // check underflow on padding
+        assert_value( &[0u8; 63]); // One byte short of full block
+    }
+
+
 }
