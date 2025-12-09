@@ -1,5 +1,6 @@
 use std::num::Wrapping; // allows us to do arithmetic on a mod basis
 use std::iter::{repeat_n};
+use std::mem::{take};
 use std::array;
 
 const K_RAW: [u32; 64] = [
@@ -92,13 +93,13 @@ impl Sha256 {
                 let bytes: [u8; 4] = chunk.try_into().unwrap();
                 words[i] = Wrapping(u32::from_be_bytes(bytes));
             });
-
+        
         // Extend using the message schedule
         for i in 16..64 {
             words[i] = words[i - 16] + ssigma0(words[i - 15]) 
                     + words[i - 7] + ssigma1(words[i - 2]);
         }
-
+        
         words
     }
 
@@ -141,19 +142,20 @@ impl Sha256 {
 
     pub fn update(&mut self, data: &[u8]) {
         // Combine buffer with new data
-        let mut combined = self.buffer.clone();
-        combined.extend_from_slice(data);
+        self.buffer.extend_from_slice(data);
+        let combined = take(&mut self.buffer);
         
         // Process complete blocks
         let chunks = combined.chunks_exact(64);
-        let remainder = chunks.remainder().to_vec();
+        let remainder = chunks.remainder();
 
         for chunk in chunks {
+            // unwrap() ok because chunk_exact ensures chunk length can only be 64. 
             let block: &[u8; 64] = chunk.try_into().unwrap();
             self.hash_block(block);
         }
         // Store remainder in the buffer and update the message length
-        self.buffer = remainder;
+        self.buffer = remainder.to_vec();
         self.total_len += data.len() as u64;
     }
 
