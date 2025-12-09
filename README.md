@@ -1,5 +1,7 @@
 # Rustudes
 
+🚧 Under Construction 🚧
+
 _"An étude (a French word meaning study) is an instrumental musical composition, usually short, of considerable difficulty, and designed to provide practice material for perfecting a particular musical skill."_ — Wikipedia
 
 This project contains pytudes—Python programs, usually short, for perfecting particular programming skills.
@@ -7,7 +9,7 @@ This project contains pytudes—Python programs, usually short, for perfecting p
 A project for playing (and learning) with little Rust-based projects, inspired by Peter Norvig's [pytudes](https://github.com/norvig/pytudes) project.
    
    
-# 🚧 Under Construction 🚧
+
 
 ## 🧪 Learning in Progress
 
