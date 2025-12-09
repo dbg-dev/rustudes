@@ -4,7 +4,7 @@
 
 This project contains pytudes—Python programs, usually short, for perfecting particular programming skills.
 
-A project for a playing (and learning) with little Rust-based projects. It is inspired by Peter Norvig's (pytudes)[https://github.com/norvig/pytudes] project.
+A project for a playing (and learning) with little Rust-based projects. It is inspired by Peter Norvig's [pytudes](https://github.com/norvig/pytudes) project.
    
    
 # 🚧 Under Construction 🚧
