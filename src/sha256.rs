@@ -82,21 +82,21 @@ impl Sha256 {
     }
 
     fn block_decomposer(&self, block: &[u8; 64]) -> [Wrapping<u32>; 64] {
-        // turn the 512(64 * 8)-bit long block into 64 words of 32-bit long
-        // Note use wrapping so can do artithmetic in mod 32 field
-        let w: Vec<Wrapping<u32>> = block
-            .chunks(4)
-            .map(|c| u32::from_be_bytes(c.try_into().unwrap()))
-            .map(Wrapping)
-            .collect();
-
         let mut words = [Wrapping(0u32); 64];
-        words[0..16].copy_from_slice(&w);
+        
+        // Parse the 512-bit block into the first 16 32-bit words
+        block.chunks_exact(4)
+            .enumerate()
+            .for_each(|(i, chunk)| {
+                // unwrap() ok because chunk_exact ensures chunk length can only be 4.
+                let bytes: [u8; 4] = chunk.try_into().unwrap();
+                words[i] = Wrapping(u32::from_be_bytes(bytes));
+            });
 
+        // Extend using the message schedule
         for i in 16..64 {
-            let s0 = ssigma0(words[i - 15]);
-            let s1 = ssigma1(words[i - 2]);
-            words[i] = words[i - 16] + s0 + words[i - 7] + s1;
+            words[i] = words[i - 16] + ssigma0(words[i - 15]) 
+                    + words[i - 7] + ssigma1(words[i - 2]);
         }
 
         words
