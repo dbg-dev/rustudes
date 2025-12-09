@@ -14,7 +14,7 @@ A project for playing (and learning) with little Rust-based projects, inspired b
 This repository is currently **in active development** - it is used for experimenting, prototyping, and building the foundation f
 or something exciting. 💡
 
----
+- [ ] SHA-2 hashing algorithm
 
 ## 🚀 Goals
 
